@@ -1,0 +1,21 @@
+{
+    "name": "core2foraws-seed-laser-pm2.5",
+    "version": "0.0.1",
+    "description": "Peripheral driver for the Seeed Studio Grove - Laser PM2.5 Sensor (HM3301) on the Core2 for AWS IoT Kit",
+    "keywords": "pm2.5, pm25, hm3301, laser, dust, air-quality, seeed, grove, aws, core2, edukit",
+    "repository":
+    {
+      "type": "git",
+      "url": "https://github.com/rashedtalukder/core2foraws-seed-laser-pm2.5.git"
+    },
+    "authors":
+    [
+      {
+        "name": "Rashed Talukder",
+        "maintainer": true
+      }
+    ],
+    "license": "Apache 2.0",
+    "frameworks": ["espidf", "freertos"],
+    "platforms": ["espressif32"]
+  }

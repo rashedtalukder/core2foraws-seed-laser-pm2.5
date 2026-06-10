@@ -1,0 +1,25 @@
+menu "Seeed Laser PM2.5 (HM3301) Configuration"
+    config SEED_LASER_PM25_ADDRESS
+        hex
+        prompt "HM3301 I2C peripheral address"
+        default 0x40
+        range 0x40 0x40
+
+    config SEED_LASER_PM25_USE_PAHUB
+        bool "Use PA Hub for I2C communication"
+        default false
+        help
+            Enable this option to communicate with the HM3301 through an
+            M5Stack PaHUB/PaHUB2 I2C multiplexer instead of a direct Port A
+            connection. When enabled, the sensor is accessed through the
+            specified PA Hub channel.
+
+    config SEED_LASER_PM25_PAHUB_CHANNEL
+        int "PA Hub channel number"
+        depends on SEED_LASER_PM25_USE_PAHUB
+        range 0 5
+        default 0
+        help
+            Specify the PA Hub channel (0-5) the HM3301 is connected to.
+            This setting is only used when PA Hub is enabled.
+endmenu
