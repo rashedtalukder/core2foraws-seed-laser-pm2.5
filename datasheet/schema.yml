@@ -1,0 +1,261 @@
+schema_version: "1.0"
+device:
+  name: "Seeed Studio Grove - Laser PM2.5 Sensor (HM3301)"
+  scope: "Grove board carrying the HM-3301 laser dust sensor; I2C only"
+
+source_evidence:
+  verified_on: "2026-09-26"
+  official_product_page: "https://wiki.seeedstudio.com/Grove-Laser_PM2.5_Sensor-HM3301/"
+  product_page_capture:
+    file: "Grove - Laser PM2.5 Sensor (HM3301) | Seeed Studio Wiki.pdf"
+    captured: "2026-09-26 (Safari print)"
+    sha256: "740e561482442b14418affbae42b952cf6740679a437729da5694cee576b3641"
+    notes: "15 pages present; page footers read 'of 17'. Content after Resources/Projects is not captured."
+  board_schematic:
+    url: "https://files.seeedstudio.com/wiki/Grove-Laser_PM2.5_Sensor-HM3301/res/Grove%20-%20Laser%20PM2.5%20Sensor%20(HM3301).zip"
+    zip_sha256: "2c230bb0d774d5a413580c9ffc569a2e5a67050e61636b3d8e5953644c083842"
+    sch_file: "Grove - Laser PM2.5 Sensor(HM3301).sch"
+    sch_sha256: "34a6fa50bc623293907e40f3fbe27777115155ca3abc763fc00140ef4e104efe"
+    revision: "Eagle 6.4, v1.0 Initial Version, 2018-09-19"
+  chip_sources:
+    hm3301:
+      file: "HM-3300&3600_V2.1.pdf"
+      revision: "HM-3300/3600 Dust Sensor Data Sheet V2.1, released 2018-07-20"
+      verified_on: "2026-09-26"
+      sha256: "d9455691d292d185703f6981ffadc01dedf87cd8354218851a18f5872bc7caeb"
+      official_url: "https://files.seeedstudio.com/wiki/Grove-Laser_PM2.5_Sensor-HM3301/res/HM-3300%263600_V2.1.pdf"
+      notes: "Checked-in copy is byte-identical to the file linked from the Seeed wiki."
+  reference_driver:
+    repo: "https://github.com/Seeed-Studio/Seeed_PM2_5_sensor_HM3301"
+    commit: "e3ffb82374c874f216c0fabd699b8f065e0cdc0c"
+    files: ["src/Seeed_HM330X.h", "src/Seeed_HM330X.cpp", "src/I2COperations.cpp"]
+  precedence:
+    - "Use the board schematic and product page for power, connector wiring, level shifting, and which sensor pins are exposed."
+    - "Use the checked-in manufacturer PDF for the bare-sensor protocol, frame layout, timing, and electrical limits."
+    - "Use the Seeed library for the de-facto I2C transaction shape and checksum indexing where the PDF is ambiguous."
+
+interface:
+  type: "I2C"
+  devices:
+    - { name: "HM3301", address_7bit: 0x40 }
+  address_8bit: { write: 0x80, read: 0x81 }
+
+# Chip-level facts from HM-3300&3600_V2.1.pdf. Board-specific use is under board_usage.
+hm3301:
+  family: "HM-3300/3600"
+  model: # selection guide, p.13
+    HM-3301: { channels: 3, output: "weighting (mass)", range_ug_m3: [0, 500], temperature_humidity: false, comms: ["UART", "I2C"] }
+    HM-3302: { channels: 3, output: "counting + weighing", range_ug_m3: [0, 500], temperature_humidity: "optional", comms: ["UART", "I2C"] }
+    HM-3601: { channels: 8, output: "weighting (mass)", range_ug_m3: [0, 1000], temperature_humidity: false, comms: ["UART", "I2C"] }
+    HM-3602: { channels: 6, output: "counting + weighing", range_ug_m3: [0, 1000], temperature_humidity: "optional", comms: ["UART", "I2C"] }
+  model_code: "HM-3XXX: 3 = version, 2nd digit = channel class, 3rd digit = function (counting, weighing, T/RH)"
+
+  sensor_technology: "Laser light scattering (Mie), electron cutting, particle counting"
+  standards: ["ISO 21501-4", "ISO 14644-1", "FS209E"]
+  min_particle_size_um: 0.3
+  family_size_channels_um: [0.3, 0.5, 1.0, 2.5, 5, 10] # up to 6; HM-3301 has 3
+  output_values: "PM2.5, PM10, TSP mass (ug/m3); particle counts"
+  components: ["fan", "infrared laser source", "condensing mirror", "photosensitive tube", "signal amplifying circuit", "signal sorting circuit"]
+
+  supply_volts: { typ: 5.0, tolerance_percent: 3 } # DC 5 V +/-3 %
+  logic_level_volts: 3.3 # SET, RXD, TXD, RESET, SDA, SCL
+  current: { operating_avg_ma_max: 75, peak_ma_max: 120, sleep_ua_max: 150 }
+  operating: { temperature_c: [-10, 60], humidity_rh: [10, 90], condensing: false }
+  life_years_min: 2 # indoor use
+
+  measurement:
+    range_pm2_5_standard_ug_m3: { effective: [1, 500], maximum: 1000, hm3301_model_table: [0, 500] }
+    resolution: { concentration_ug_m3: 1, counting: "1 s / 0.1 L" }
+    consistency: # 25 C, 50 % RH
+      - { range_ug_m3: [0, 100], tolerance_ug_m3: 10 }
+      - { range_ug_m3: [100, 500], tolerance_percent: 10 }
+    data_refresh_s: 1
+    stabilization_s_min: 30 # after power-on and after wake from sleep
+    temperature_tolerance_chart: # p.10, read from plot; axis spans -40..125 C
+      unit: "absolute tolerance, %"
+      typical: { at_minus40c: 26, flat_10c_to_55c: 6, at_125c: 24 }
+      maximal: { at_minus40c: 38, flat_10c_to_55c: 8, at_125c: 36 }
+      at_operating_limits_approx: { minus10c: { typical: 14, maximal: 20 }, "60c": { typical: 7, maximal: 10 } }
+
+  connector: "1.25 mm pitch, 8-pin (1.25T-8P)"
+  pins:
+    - { pin: 1, name: "VCC", function: "Power, DC 5 V" }
+    - { pin: 2, name: "GND", function: "Power ground" }
+    - { pin: 3, name: "SET", function: "High or floating = normal; low = sleep (fan stops)", level_v: 3.3, internal_pullup: true }
+    - { pin: 4, name: "RXD", function: "UART receive", level_v: 3.3 }
+    - { pin: 5, name: "TXD", function: "UART transmit", level_v: 3.3 }
+    - { pin: 6, name: "RESET", function: "Module reset, active low", level_v: 3.3, internal_pullup: true }
+    - { pin: 7, name: "IIC_SDA", function: "I2C data", level_v: 3.3 }
+    - { pin: 8, name: "IIC_SCL", function: "I2C clock", level_v: 3.3 }
+  pin_notes:
+    - "Powered by 5 V; all communication and control pins are 3.3 V."
+    - "SET and RESET have internal pull-ups; leave floating if unused."
+    - "Do not use UART and I2C at the same time."
+    - "Reference circuits show 10 kOhm pull-ups to 3.3 V on SET and RESET; no I2C pull-ups are drawn."
+    - "Metal case is tied to internal power ground."
+
+  i2c:
+    role: "slave"
+    scl_hz: { standard: 100000, max: 400000 } # Appendix 2 says standard mode; design note 4 says 100-400 kHz
+    register_addressing: false # plain write of a command byte; plain 29-byte read
+    power_on_mode: "UART with active upload"
+    commands:
+      select_i2c: { byte: 0x88, effect: "Turn off UART so I2C data is valid" }
+    command_notes:
+      - "Send select_i2c before reading, otherwise the data is wrong."
+      - "Re-send after any power cycle or reset; the module defaults back to UART."
+
+  i2c_frame:
+    length_bytes: 29
+    byte_order: "MSB first"
+    word_bits: 16
+    checksum: { type: "8-bit sum", covers: [0, 27], at: 28 }
+    fields: # 0-indexed offsets; the PDF labels them Data1..Data29
+      - { offset: 0, size: 2, name: "reserved" }
+      - { offset: 2, size: 2, name: "sensor_number" }
+      - { offset: 4, size: 2, name: "pm1_0_cf1", unit: "ug/m3" }
+      - { offset: 6, size: 2, name: "pm2_5_cf1", unit: "ug/m3" }
+      - { offset: 8, size: 2, name: "pm10_cf1", unit: "ug/m3" }
+      - { offset: 10, size: 2, name: "pm1_0_atm", unit: "ug/m3" }
+      - { offset: 12, size: 2, name: "pm2_5_atm", unit: "ug/m3" }
+      - { offset: 14, size: 2, name: "pm10_atm", unit: "ug/m3" }
+      - { offset: 16, size: 2, name: "count_0_3um", unit: "particles >= 0.3 um per L" }
+      - { offset: 18, size: 2, name: "count_0_5um", unit: "particles >= 0.5 um per L" }
+      - { offset: 20, size: 2, name: "count_1_0um", unit: "particles >= 1.0 um per L" }
+      - { offset: 22, size: 2, name: "count_2_5um", unit: "particles >= 2.5 um per L" }
+      - { offset: 24, size: 2, name: "count_5_0um", unit: "particles >= 5.0 um per L" }
+      - { offset: 26, size: 2, name: "count_10um", unit: "particles >= 10 um per L" }
+      - { offset: 28, size: 1, name: "checksum" }
+    calibration_sets:
+      cf1: "Standard particulate: density of industrial metal particles as equivalent; for industrial workshops."
+      atm: "Atmospheric environment: density of main air pollutants as equivalent; for ordinary indoor/outdoor air."
+
+  uart:
+    baud: 9600
+    format: "8N1"
+    checksum: "16-bit sum of all preceding bytes, high byte first"
+    module_number:
+      notes: "Module number is the UART address; parallel modules need unique numbers."
+      read: { tx: "45 40 AA AA AA AA 03 2D", rx: "45 40 08 <reserved:2> <number:2> 00 00 00 00 <sum:2>" }
+      write: { tx: "45 60 00 00 <old:2> 00 00 <new:2> 00 00 00 00 <sum:2>", example: "45 60 00 00 00 01 00 00 00 02 00 00 00 00 00 A8" }
+    mode_command:
+      frame: "42 4D CMD DATAH DATAL LRCH LRCL"
+      commands:
+        passive_read: { cmd: 0xE2, data: 0x0000 }
+        set_passive: { cmd: 0xE1, data: 0x0000 }
+        set_active: { cmd: 0xE1, data: 0x0001 }
+        standby: { cmd: 0xE4, data: 0x0000 }
+        normal: { cmd: 0xE4, data: 0x0001 }
+      derived_frames: # LRC not defined in the PDF; computed with the appendix-wide sum rule
+        passive_read: "42 4D E2 00 00 01 71"
+        set_passive: "42 4D E1 00 00 01 70"
+        set_active: "42 4D E1 00 01 01 71"
+        standby: "42 4D E4 00 00 01 73"
+        normal: "42 4D E4 00 01 01 74"
+    upload_frame:
+      length_bytes: 32
+      start: { byte0: 0x42, byte1: { active: 0x4D, polling: 0x4E } }
+      frame_length_field: 28 # 2 x 13 + 2
+      fields: # 16-bit, MSB first, byte offsets
+        - { offset: 2, name: "frame_length" }
+        - { offset: 4, name: "pm1_0_cf1", unit: "ug/m3" }
+        - { offset: 6, name: "pm2_5_cf1", unit: "ug/m3" }
+        - { offset: 8, name: "pm10_cf1", unit: "ug/m3" }
+        - { offset: 10, name: "pm1_0_atm", unit: "ug/m3" }
+        - { offset: 12, name: "pm2_5_atm", unit: "ug/m3" }
+        - { offset: 14, name: "pm10_atm", unit: "ug/m3" }
+        - { offset: 16, name: "count_0_3um", unit: "per L" }
+        - { offset: 18, name: "count_0_5um", unit: "per L" }
+        - { offset: 20, name: "count_1_0um", unit: "per L" }
+        - { offset: 22, name: "count_2_5um", unit: "per L" }
+        - { offset: 24, name: "count_5_0um", unit: "per L" }
+        - { offset: 26, name: "count_10um", unit: "per L" }
+        - { offset: 28, name: "module_number" }
+        - { offset: 30, name: "checksum", covers: [0, 29] }
+
+  mechanical:
+    dimensions_mm: { l: 40, w: 38, h: 15 }
+    mounting: "Two bottom positioning holes; drawing marks 2 mm diameter, text specifies M2.5 screws"
+
+  installation:
+    - "Keep inlet and outlet close to the product's vents; keep the outlet unobstructed."
+    - "Isolate inlet airflow from outlet airflow with a structure."
+    - "Product vent for the inlet must not be smaller than the sensor inlet."
+    - "In purifiers, keep the sensor out of the purifier's own air duct or isolate it."
+    - "Mount more than 20 cm above the ground."
+    - "Outdoor protection from dust storms, rain, snow, and floc is the product's responsibility."
+    - "Do not disassemble."
+
+  reliability_tests: # all C=0 failures
+    - { item: "drop", method: "1 m onto wood floor, 3 times", n: 6 }
+    - { item: "vibration", method: "sine + random, X/Y/Z, 10-50 Hz, 1 h", n: 6 }
+    - { item: "high-temperature operation", method: "45 C, 800 h", n: 10 }
+    - { item: "low-temperature operation", method: "-5 C, 600 h", n: 10 }
+    - { item: "high-temperature high-humidity storage", method: "70 C, 95 % RH, 720 h", n: 10 }
+    - { item: "low-temperature storage", method: "-20 C, 720 h", n: 10 }
+    - { item: "power fluctuation", method: "4.5-5.5 V at 0.1 V/min", n: 2 }
+    - { item: "on/off", method: "5 V, 20 C, 50 % RH, toggle every minute", n: 3 }
+    - { item: "sleep current", method: "SET low", result: "< 150 uA", n: 2 }
+    - { item: "noise", method: "quiet room, 1 m", result: "< 45 dB", n: 1 }
+    - { item: "salt spray", method: "5 % NaCl 24 h, then 48 h rest", result: "no obvious rust", n: 3 }
+    - { item: "ESD", method: "IEC 61000-4-2, 150 pF / 330 Ohm, air discharge +/-2, 4, 8 kV", result: "normal work", n: 1 }
+  reliability_pass_criteria: "12-point average vs reference: <= 10 ug/m3 below 100 ug/m3, <= 10 % above."
+
+# Board-level facts from the Seeed schematic and product page.
+board_usage:
+  supply_volts: [3.3, 5.0] # Grove VCC
+  power_path:
+    - "Grove VCC -> F1 1 A fuse -> U3 ETA3410 buck -> 3V0 rail"
+    - "3V0 -> U1 ETA1038 boost -> 5V0 rail -> sensor pin 1"
+    - "Grove VCC -> U4 XC6206P332MR LDO -> 3V3 rail (level-shifter gate bias)"
+  i2c_level_shifter:
+    type: "2N7002 NMOS pass transistors (Q1 SDA, Q2 SCL), gates on 3V3"
+    grove_side_pullups: { ohms: 4700, to: "Grove VCC", refs: ["R3", "R4"] }
+    sensor_side_pullups: { refs: ["R1", "R2"], fitted: false }
+  grove_connector: # J2
+    - { pin: 1, signal: "SCL", wire: "yellow" }
+    - { pin: 2, signal: "SDA", wire: "white" }
+    - { pin: 3, signal: "VCC", wire: "red" }
+    - { pin: 4, signal: "GND", wire: "black" }
+  sensor_pin_routing: # J1
+    VCC: "5V0 rail"
+    GND: "GND"
+    SET: "J3 pad 1 (header not fitted); R13 pull-up to 3V3 not fitted"
+    RXD: "not connected"
+    TXD: "not connected"
+    RESET: "J3 pad 2 (header not fitted); R12 pull-up to 3V3 not fitted"
+    IIC_SDA: "Q1 source"
+    IIC_SCL: "Q2 source"
+  not_exposed: ["UART", "SET (sleep)", "RESET"]
+  notes:
+    - "The sensor always runs from the on-board 5 V boost, whichever Grove VCC is used."
+    - "SDA/SCL pull up to Grove VCC through 4.7 kOhm and pass through a MOSFET level shifter. Direct Core2 Port A connection has been tested and works with this sensor."
+    - "The schematic alone does not establish the voltage at every bus point or the electrical margin; re-check levels if the board, cable, or host setup changes."
+    - "SET and RESET float on the sensor's internal pull-ups, so the sensor stays in normal mode."
+    - "Silkscreen: 'I2C 0x40'."
+
+# De-facto transaction shape from the Seeed library at the pinned commit.
+reference_driver:
+  init: "Wire.begin(); write single byte 0x88 to 0x40; no delay"
+  read: "Wire.requestFrom(0x40, 29); no register byte; 10 x 1 ms availability timeout"
+  checksum: "sum(data[0..27]) & 0xFF == data[28]"
+  parsed_words: "data[2..15]: sensor number then six PM values"
+  example_period_ms: 5000
+  example_frame_hex: "00 FF 00 00 00 2D 00 3F 00 45 00 22 00 32 00 3B 00 00 00 00 00 00 00 00 00 00 00 00"
+  example_values: { sensor_number: 0, pm1_0_cf1: 45, pm2_5_cf1: 63, pm10_cf1: 69, pm1_0_atm: 34, pm2_5_atm: 50, pm10_atm: 59 }
+  observations:
+    - "Particle-count words are all zero in Seeed's HM3301 example output."
+    - "Reserved bytes read 0x00 0xFF in the example."
+
+source_conflicts:
+  - "I2C address: PDF gives 0x80 (8-bit write form); Seeed library and silkscreen use 7-bit 0x40."
+  - "I2C speed: Appendix 2 says standard mode (100 kHz); design note 4 says 100-400 kHz."
+  - "I2C frame indexing: table is Data1..Data29 but checksum reads 'Data0~Data28'; Seeed code sums bytes 0..27 into byte 28."
+  - "Count units: spec table says per 0.1 L; UART and I2C field tables say per 1 L."
+  - "Range: spec table 1-500 effective / 1000 max; HM-3301 model table 0-500."
+  - "Channels: feature list says six size channels; HM-3301 is 3-channel weighting mode."
+  - "TSP is listed as an output but no TSP field exists in either frame."
+  - "Humidity compensation is claimed in features; HM-3301 has no T/RH option."
+  - "Mounting: drawing shows 2 mm holes; text says M2.5 screws."
+  - "UART module-number read example ends '00 90'; the stated sum rule gives 00 8F."
+  - "Consistency is specified at '25 deg, 50 % RH'; the consistency plot is at 20 C, 50 % RH."

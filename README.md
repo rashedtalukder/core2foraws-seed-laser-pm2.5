@@ -13,6 +13,13 @@ The sensor connects to the external **Port A** (I2C) on the Core2. The driver re
 | Red (VCC) | VCC |
 | Black (GND) | GND |
 
+> **Electrical note:** Direct connection to Core2 Port A has been tested and works with this
+> sensor. The Grove schematic shows 4.7 kΩ SDA/SCL pull-ups to Grove VCC and a MOSFET level
+> shifter; because Port A supplies 5 V on VCC, that circuit detail alone does not establish the
+> voltage seen at every point on the bus or its electrical margin. The Grove module is specified
+> for 3.3 V or 5 V input and generates 5 V for the sensor on-board. Re-check the bus levels if
+> changing the board, cable, or host setup.
+
 ## PaHUB / I2C multiplexing
 
 The sensor can also be accessed through an [M5Stack PaHUB/PaHUB2](https://docs.m5stack.com/en/unit/pahub) I2C multiplexer instead of a direct Port A connection. Enable it in `menuconfig` under **Seeed Laser PM2.5 (HM3301) Configuration**:
